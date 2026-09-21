@@ -39,8 +39,8 @@
 
     /* Anime Character Container */
     .character-box {
-      width: 160px;
-      height: 160px;
+      width: 180px;
+      height: 180px;
       position: relative;
     }
 
@@ -73,12 +73,14 @@
       transition: opacity 0.3s ease;
     }
 
+    /* Sweat drop for error state */
     .sweat {
       opacity: 0;
       transform: translateY(-5px);
       transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
+    /* Success sparkles */
     .sparkle {
       opacity: 0;
       transition: opacity 0.3s ease, transform 0.3s ease;
@@ -90,17 +92,11 @@
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-    }
-
-    .form-row {
-      display: flex;
-      gap: 12px;
-      width: 100%;
+      gap: 8px;
     }
 
     label {
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       text-transform: uppercase;
       letter-spacing: 1px;
       color: #94a3b8;
@@ -114,20 +110,16 @@
 
     input {
       width: 100%;
-      padding: 12px 14px;
+      padding: 14px 16px;
+      padding-right: 70px;
       border-radius: 12px;
       border: 2px solid #334155;
       background: #0f172a;
       color: #fff;
-      font-size: 1rem;
-      letter-spacing: 1px;
+      font-size: 1.1rem;
+      letter-spacing: 2px;
       outline: none;
       transition: border-color 0.25s ease, box-shadow 0.25s ease;
-    }
-
-    #card-number {
-      padding-right: 75px;
-      letter-spacing: 2px;
     }
 
     input:focus {
@@ -135,20 +127,12 @@
       box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
     }
 
-    input.invalid {
-      border-color: #f87171;
-    }
-
-    input.valid {
-      border-color: #4ade80;
-    }
-
     .vendor-badge {
       position: absolute;
-      right: 10px;
+      right: 12px;
       top: 50%;
       transform: translateY(-50%);
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       font-weight: bold;
       padding: 4px 8px;
       border-radius: 6px;
@@ -160,22 +144,20 @@
 
     .status-message {
       min-height: 24px;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       font-weight: 600;
       text-align: center;
       transition: color 0.25s ease;
     }
 
-    /* Character Mood States */
+    /* Character Mood States (applied via JS) */
     .mood-happy .blush { opacity: 0.6; }
     .mood-happy .sparkle { opacity: 1; transform: scale(1.1); }
+    
     .mood-sad .sweat { opacity: 1; transform: translateY(0); }
+    
     .mood-focus .eyebrow-left { transform: translateY(2px) rotate(5deg); }
     .mood-focus .eyebrow-right { transform: translateY(2px) rotate(-5deg); }
-    
-    /* Shy mood when typing CVV */
-    .mood-shy .blush { opacity: 0.9; }
-    .mood-shy .eye { transform: scaleY(0.2); }
   </style>
 </head>
 <body>
@@ -230,21 +212,10 @@
 
     <!-- Validation Form -->
     <div class="form-group">
-      <label for="card-number">Card Number</label>
+      <label for="card-number">Credit Card Number</label>
       <div class="input-wrapper">
         <input type="text" id="card-number" placeholder="4532 •••• •••• ••••" maxlength="19" autocomplete="off">
         <span class="vendor-badge" id="vendor-badge">Card</span>
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label for="card-exp">Expiry (MM/YY)</label>
-        <input type="text" id="card-exp" placeholder="MM/YY" maxlength="5" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label for="card-cvv">CVV</label>
-        <input type="password" id="card-cvv" placeholder="•••" maxlength="4" autocomplete="off">
       </div>
     </div>
 
@@ -252,14 +223,12 @@
   </div>
 
   <script>
-    const cardNumber = document.getElementById('card-number');
-    const cardExp = document.getElementById('card-exp');
-    const cardCvv = document.getElementById('card-cvv');
+    const cardInput = document.getElementById('card-number');
     const vendorBadge = document.getElementById('vendor-badge');
     const statusMsg = document.getElementById('status-message');
     const character = document.getElementById('character');
 
-    // SVG Elements
+    // SVG Elements for animation control
     const eyeLeft = document.getElementById('eye-left');
     const eyeRight = document.getElementById('eye-right');
     const pupilLeft = document.getElementById('pupil-left');
@@ -268,9 +237,7 @@
     const browLeft = document.getElementById('brow-left');
     const browRight = document.getElementById('brow-right');
 
-    let currentVendor = 'Card';
-
-    // 1. Luhn Algorithm
+    // Luhn Algorithm Implementation
     function validateLuhn(numberStr) {
       const digits = numberStr.replace(/\D/g, '');
       if (digits.length < 13) return false;
@@ -280,55 +247,31 @@
 
       for (let i = digits.length - 1; i >= 0; i--) {
         let d = parseInt(digits.charAt(i), 10);
+
         if (isSecond) {
           d *= 2;
           if (d > 9) d -= 9;
         }
+
         sum += d;
         isSecond = !isSecond;
       }
+
       return sum % 10 === 0;
     }
 
-    // 2. Vendor Detection
+    // Card Vendor Detection
     function detectVendor(numberStr) {
       const cleaned = numberStr.replace(/\D/g, '');
-      if (/^4/.test(cleaned)) return { name: 'Visa', color: '#2563eb', cvvLen: 3 };
-      if (/^(5[1-5]|2[2-7])/.test(cleaned)) return { name: 'Mastercard', color: '#ea580c', cvvLen: 3 };
-      if (/^3[47]/.test(cleaned)) return { name: 'Amex', color: '#0284c7', cvvLen: 4 };
-      if (/^6(?:011|5)/.test(cleaned)) return { name: 'Discover', color: '#d97706', cvvLen: 3 };
-      if (/^35/.test(cleaned)) return { name: 'JCB', color: '#16a34a', cvvLen: 3 };
-      return { name: 'Card', color: '#334155', cvvLen: 3 };
+      if (/^4/.test(cleaned)) return { name: 'Visa', color: '#2563eb' };
+      if (/^(5[1-5]|2[2-7])/.test(cleaned)) return { name: 'Mastercard', color: '#ea580c' };
+      if (/^3[47]/.test(cleaned)) return { name: 'Amex', color: '#0284c7' };
+      if (/^6(?:011|5)/.test(cleaned)) return { name: 'Discover', color: '#d97706' };
+      if (/^35/.test(cleaned)) return { name: 'JCB', color: '#16a34a' };
+      return { name: 'Card', color: '#334155' };
     }
 
-    // 3. Expiry Check
-    function validateExpiry(expStr) {
-      if (!/^\d{2}\/\d{2}$/.test(expStr)) return false;
-      
-      const [monthStr, yearStr] = expStr.split('/');
-      const month = parseInt(monthStr, 10);
-      const year = parseInt('20' + yearStr, 10);
-
-      if (month < 1 || month > 12) return false;
-
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
-
-      if (year < currentYear) return false;
-      if (year === currentYear && month < currentMonth) return false;
-
-      return true;
-    }
-
-    // 4. CVV Check
-    function validateCVV(cvvStr, vendor) {
-      const digits = cvvStr.replace(/\D/g, '');
-      const requiredLen = vendor.cvvLen || 3;
-      return digits.length === requiredLen;
-    }
-
-    // Character Mood Controller
+    // Character Animation Logic
     function setMood(mood) {
       character.className = 'character-box mood-' + mood;
 
@@ -349,6 +292,7 @@
         mouth.setAttribute('stroke', '#334155');
       } 
       else if (mood === 'happy') {
+        // Starry/Winking squinty eyes and big smile
         eyeLeft.setAttribute('ry', '3');
         eyeRight.setAttribute('ry', '3');
         mouth.setAttribute('d', 'M 85,110 Q 100,135 115,110 Z');
@@ -358,6 +302,7 @@
         browRight.setAttribute('d', 'M 118,62 Q 130,50 145,60');
       } 
       else if (mood === 'sad') {
+        // Worry eyebrows and inverted mouth
         eyeLeft.setAttribute('ry', '16');
         eyeRight.setAttribute('ry', '16');
         mouth.setAttribute('d', 'M 90,122 Q 100,112 110,122');
@@ -366,86 +311,68 @@
         browLeft.setAttribute('d', 'M 55,62 Q 70,70 82,65');
         browRight.setAttribute('d', 'M 118,65 Q 130,70 145,62');
       }
-      else if (mood === 'shy') {
-        mouth.setAttribute('d', 'M 95,118 Q 100,115 105,118');
-        mouth.setAttribute('fill', 'none');
-      }
     }
 
-    // Comprehensive Check
-    function validateAll() {
-      const numRaw = cardNumber.value.replace(/\D/g, '');
-      const expVal = cardExp.value.trim();
-      const cvvVal = cardCvv.value.trim();
-      const vendorInfo = detectVendor(numRaw);
-
-      const isNumValid = validateLuhn(numRaw);
-      const isExpValid = validateExpiry(expVal);
-      const isCvvValid = validateCVV(cvvVal, vendorInfo);
-
-      // Input visual highlights
-      cardNumber.classList.toggle('valid', isNumValid);
-      cardNumber.classList.toggle('invalid', numRaw.length >= 13 && !isNumValid);
-
-      cardExp.classList.toggle('valid', isExpValid);
-      cardExp.classList.toggle('invalid', expVal.length === 5 && !isExpValid);
-
-      cardCvv.classList.toggle('valid', isCvvValid);
-      cardCvv.classList.toggle('invalid', cvvVal.length >= 3 && !isCvvValid);
-
-      // Status updates
-      if (isNumValid && isExpValid && isCvvValid) {
-        setMood('happy');
-        statusMsg.textContent = 'Card Details Are Perfect!';
-        statusMsg.style.color = '#4ade80';
-      } else if (!isNumValid && numRaw.length >= 13) {
-        setMood('sad');
-        statusMsg.textContent = 'Invalid Card Number';
-        statusMsg.style.color = '#f87171';
-      } else if (expVal.length === 5 && !isExpValid) {
-        setMood('sad');
-        statusMsg.textContent = 'Invalid/Expired Expiry Date';
-        statusMsg.style.color = '#f87171';
-      } else {
-        statusMsg.textContent = 'Complete all fields';
-        statusMsg.style.color = '#94a3b8';
-      }
+    // Pupil movement based on input length/cursor tracking
+    function trackInputProgress(length) {
+      const offset = Math.min(Math.max((length / 16) * 6 - 3, -4), 4);
+      pupilLeft.setAttribute('cx', 70 + offset);
+      pupilRight.setAttribute('cx', 130 + offset);
+      
+      const verticalOffset = length > 0 ? 2 : 0;
+      pupilLeft.setAttribute('cy', 85 + verticalOffset);
+      pupilRight.setAttribute('cy', 85 + verticalOffset);
     }
 
-    // Input Listeners
-    cardNumber.addEventListener('input', (e) => {
-      let raw = e.target.value.replace(/\D/g, '');
-      cardNumber.value = raw.match(/.{1,4}/g)?.join(' ') || '';
+    // Input Handling and Formatting
+    cardInput.addEventListener('input', (e) => {
+      // Auto-format spacing (groups of 4)
+      let rawValue = e.target.value.replace(/\D/g, '');
+      let formattedValue = rawValue.match(/.{1,4}/g)?.join(' ') || '';
+      cardInput.value = formattedValue;
 
-      const vendor = detectVendor(raw);
+      trackInputProgress(rawValue.length);
+
+      // Update Vendor Badge
+      const vendor = detectVendor(rawValue);
       vendorBadge.textContent = vendor.name;
       vendorBadge.style.backgroundColor = vendor.color;
       vendorBadge.style.color = '#ffffff';
 
-      if (raw.length < 13) setMood('focus');
-      validateAll();
-    });
-
-    // Expiry Auto-Format (MM/YY)
-    cardExp.addEventListener('input', (e) => {
-      let raw = e.target.value.replace(/\D/g, '');
-      if (raw.length >= 2) {
-        cardExp.value = raw.substring(0, 2) + '/' + raw.substring(2, 4);
+      // Validation Checks
+      if (rawValue.length === 0) {
+        setMood('neutral');
+        statusMsg.textContent = 'Enter card details';
+        statusMsg.style.color = '#f8fafc';
+      } else if (rawValue.length < 13) {
+        setMood('focus');
+        statusMsg.textContent = 'Keep typing...';
+        statusMsg.style.color = '#94a3b8';
       } else {
-        cardExp.value = raw;
+        const isValid = validateLuhn(rawValue);
+        if (isValid) {
+          setMood('happy');
+          statusMsg.textContent = 'Valid Credit Card Number!';
+          statusMsg.style.color = '#4ade80';
+        } else {
+          setMood('sad');
+          statusMsg.textContent = 'Invalid Card Number';
+          statusMsg.style.color = '#f87171';
+        }
       }
-      setMood('focus');
-      validateAll();
     });
 
-    // CVV Logic + Shy Animation
-    cardCvv.addEventListener('input', () => {
-      cardCvv.value = cardCvv.value.replace(/\D/g, '');
-      validateAll();
+    cardInput.addEventListener('focus', () => {
+      if (cardInput.value.replace(/\D/g, '').length < 13) {
+        setMood('focus');
+      }
     });
 
-    cardCvv.addEventListener('focus', () => setMood('shy'));
-    cardCvv.addEventListener('blur', () => validateAll());
+    cardInput.addEventListener('blur', () => {
+      if (cardInput.value.length === 0) {
+        setMood('neutral');
+      }
+    });
   </script>
 </body>
 </html>
