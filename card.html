@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anime Card Validator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      color: #f8fafc;
+    }
+
+    .container {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 30px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* Anime Character Container */
+    .character-box {
+      width: 180px;
+      height: 180px;
+      position: relative;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* SVG Animations & Styles */
+    .eye {
+      transition: transform 0.15s ease, d 0.2s ease;
+      transform-origin: center;
+    }
+
+    .pupil {
+      transition: transform 0.1s ease;
+    }
+
+    .mouth {
+      transition: d 0.25s ease, stroke 0.25s ease, fill 0.25s ease;
+    }
+
+    .eyebrow {
+      transition: transform 0.25s ease;
+    }
+
+    .blush {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    /* Sweat drop for error state */
+    .sweat {
+      opacity: 0;
+      transform: translateY(-5px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    /* Success sparkles */
+    .sparkle {
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      transform-origin: center;
+    }
+
+    /* Card Form Styles */
+    .form-group {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .input-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      padding-right: 70px;
+      border-radius: 12px;
+      border: 2px solid #334155;
+      background: #0f172a;
+      color: #fff;
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+      outline: none;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+    }
+
+    .vendor-badge {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: #334155;
+      color: #94a3b8;
+      text-transform: uppercase;
+      transition: all 0.25s ease;
+    }
+
+    .status-message {
+      min-height: 24px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-align: center;
+      transition: color 0.25s ease;
+    }
+
+    /* Character Mood States (applied via JS) */
+    .mood-happy .blush { opacity: 0.6; }
+    .mood-happy .sparkle { opacity: 1; transform: scale(1.1); }
+    
+    .mood-sad .sweat { opacity: 1; transform: translateY(0); }
+    
+    .mood-focus .eyebrow-left { transform: translateY(2px) rotate(5deg); }
+    .mood-focus .eyebrow-right { transform: translateY(2px) rotate(-5deg); }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- SVG Anime Character -->
+    <div class="character-box" id="character">
+      <svg viewBox="0 0 200 200">
+        <!-- Sparkles (Success State) -->
+        <g class="sparkle" id="sparkles">
+          <path d="M 30,40 L 33,48 L 41,51 L 33,54 L 30,62 L 27,54 L 19,51 L 27,48 Z" fill="#facc15" />
+          <path d="M 160,30 L 162,36 L 168,38 L 162,40 L 160,46 L 158,40 L 152,38 L 158,36 Z" fill="#facc15" />
+        </g>
+
+        <!-- Sweat Drop (Error State) -->
+        <path class="sweat" id="sweat" d="M 160,70 Q 165,80 160,85 A 5,5 0 0,1 150,80 Q 155,75 160,70 Z" fill="#38bdf8" />
+
+        <!-- Hair Back -->
+        <path d="M 40,100 C 20,40 180,40 160,100 C 170,140 160,160 160,160 L 40,160 C 40,160 30,140 40,100 Z" fill="#475569" />
+
+        <!-- Face Base -->
+        <path d="M 50,80 Q 100,165 150,80 Q 150,50 100,45 Q 50,50 50,80 Z" fill="#fed7aa" />
+
+        <!-- Blush Marks -->
+        <ellipse class="blush" cx="65" cy="100" rx="10" ry="5" fill="#f43f5e" />
+        <ellipse class="blush" cx="135" cy="100" rx="10" ry="5" fill="#f43f5e" />
+
+        <!-- Eyes Left & Right -->
+        <g id="left-eye-group">
+          <ellipse class="eye" id="eye-left" cx="70" cy="85" rx="12" ry="16" fill="#0f172a" />
+          <circle class="pupil" id="pupil-left" cx="70" cy="85" r="5" fill="#ffffff" />
+          <circle cx="67" cy="80" r="3" fill="#ffffff" />
+        </g>
+
+        <g id="right-eye-group">
+          <ellipse class="eye" id="eye-right" cx="130" cy="85" rx="12" ry="16" fill="#0f172a" />
+          <circle class="pupil" id="pupil-right" cx="130" cy="85" r="5" fill="#ffffff" />
+          <circle cx="127" cy="80" r="3" fill="#ffffff" />
+        </g>
+
+        <!-- Eyebrows -->
+        <path class="eyebrow eyebrow-left" id="brow-left" d="M 55,65 Q 70,60 82,67" stroke="#334155" stroke-width="3" stroke-linecap="round" fill="none" />
+        <path class="eyebrow eyebrow-right" id="brow-right" d="M 118,67 Q 130,60 145,65" stroke="#334155" stroke-width="3" stroke-linecap="round" fill="none" />
+
+        <!-- Mouth -->
+        <path class="mouth" id="mouth" d="M 90,115 Q 100,120 110,115" stroke="#334155" stroke-width="3" stroke-linecap="round" fill="none" />
+
+        <!-- Hair Front (Bangs) -->
+        <path d="M 45,65 Q 70,85 85,60 Q 100,90 115,55 Q 130,85 155,60 Q 150,35 100,35 Q 50,35 45,65 Z" fill="#64748b" />
+      </svg>
+    </div>
+
+    <!-- Validation Form -->
+    <div class="form-group">
+      <label for="card-number">Credit Card Number</label>
+      <div class="input-wrapper">
+        <input type="text" id="card-number" placeholder="4532 •••• •••• ••••" maxlength="19" autocomplete="off">
+        <span class="vendor-badge" id="vendor-badge">Card</span>
+      </div>
+    </div>
+
+    <div class="status-message" id="status-message">Enter card details</div>
+  </div>
+
+  <script>
+    const cardInput = document.getElementById('card-number');
+    const vendorBadge = document.getElementById('vendor-badge');
+    const statusMsg = document.getElementById('status-message');
+    const character = document.getElementById('character');
+
+    // SVG Elements for animation control
+    const eyeLeft = document.getElementById('eye-left');
+    const eyeRight = document.getElementById('eye-right');
+    const pupilLeft = document.getElementById('pupil-left');
+    const pupilRight = document.getElementById('pupil-right');
+    const mouth = document.getElementById('mouth');
+    const browLeft = document.getElementById('brow-left');
+    const browRight = document.getElementById('brow-right');
+
+    // Luhn Algorithm Implementation
+    function validateLuhn(numberStr) {
+      const digits = numberStr.replace(/\D/g, '');
+      if (digits.length < 13) return false;
+
+      let sum = 0;
+      let isSecond = false;
+
+      for (let i = digits.length - 1; i >= 0; i--) {
+        let d = parseInt(digits.charAt(i), 10);
+
+        if (isSecond) {
+          d *= 2;
+          if (d > 9) d -= 9;
+        }
+
+        sum += d;
+        isSecond = !isSecond;
+      }
+
+      return sum % 10 === 0;
+    }
+
+    // Card Vendor Detection
+    function detectVendor(numberStr) {
+      const cleaned = numberStr.replace(/\D/g, '');
+      if (/^4/.test(cleaned)) return { name: 'Visa', color: '#2563eb' };
+      if (/^(5[1-5]|2[2-7])/.test(cleaned)) return { name: 'Mastercard', color: '#ea580c' };
+      if (/^3[47]/.test(cleaned)) return { name: 'Amex', color: '#0284c7' };
+      if (/^6(?:011|5)/.test(cleaned)) return { name: 'Discover', color: '#d97706' };
+      if (/^35/.test(cleaned)) return { name: 'JCB', color: '#16a34a' };
+      return { name: 'Card', color: '#334155' };
+    }
+
+    // Character Animation Logic
+    function setMood(mood) {
+      character.className = 'character-box mood-' + mood;
+
+      if (mood === 'neutral') {
+        eyeLeft.setAttribute('ry', '16');
+        eyeRight.setAttribute('ry', '16');
+        mouth.setAttribute('d', 'M 90,115 Q 100,120 110,115');
+        mouth.setAttribute('fill', 'none');
+        mouth.setAttribute('stroke', '#334155');
+        browLeft.setAttribute('d', 'M 55,65 Q 70,60 82,67');
+        browRight.setAttribute('d', 'M 118,67 Q 130,60 145,65');
+      } 
+      else if (mood === 'focus') {
+        eyeLeft.setAttribute('ry', '14');
+        eyeRight.setAttribute('ry', '14');
+        mouth.setAttribute('d', 'M 93,116 Q 100,114 107,116');
+        mouth.setAttribute('fill', 'none');
+        mouth.setAttribute('stroke', '#334155');
+      } 
+      else if (mood === 'happy') {
+        // Starry/Winking squinty eyes and big smile
+        eyeLeft.setAttribute('ry', '3');
+        eyeRight.setAttribute('ry', '3');
+        mouth.setAttribute('d', 'M 85,110 Q 100,135 115,110 Z');
+        mouth.setAttribute('fill', '#f43f5e');
+        mouth.setAttribute('stroke', '#e11d48');
+        browLeft.setAttribute('d', 'M 55,60 Q 70,50 82,62');
+        browRight.setAttribute('d', 'M 118,62 Q 130,50 145,60');
+      } 
+      else if (mood === 'sad') {
+        // Worry eyebrows and inverted mouth
+        eyeLeft.setAttribute('ry', '16');
+        eyeRight.setAttribute('ry', '16');
+        mouth.setAttribute('d', 'M 90,122 Q 100,112 110,122');
+        mouth.setAttribute('fill', 'none');
+        mouth.setAttribute('stroke', '#334155');
+        browLeft.setAttribute('d', 'M 55,62 Q 70,70 82,65');
+        browRight.setAttribute('d', 'M 118,65 Q 130,70 145,62');
+      }
+    }
+
+    // Pupil movement based on input length/cursor tracking
+    function trackInputProgress(length) {
+      const offset = Math.min(Math.max((length / 16) * 6 - 3, -4), 4);
+      pupilLeft.setAttribute('cx', 70 + offset);
+      pupilRight.setAttribute('cx', 130 + offset);
+      
+      const verticalOffset = length > 0 ? 2 : 0;
+      pupilLeft.setAttribute('cy', 85 + verticalOffset);
+      pupilRight.setAttribute('cy', 85 + verticalOffset);
+    }
+
+    // Input Handling and Formatting
+    cardInput.addEventListener('input', (e) => {
+      // Auto-format spacing (groups of 4)
+      let rawValue = e.target.value.replace(/\D/g, '');
+      let formattedValue = rawValue.match(/.{1,4}/g)?.join(' ') || '';
+      cardInput.value = formattedValue;
+
+      trackInputProgress(rawValue.length);
+
+      // Update Vendor Badge
+      const vendor = detectVendor(rawValue);
+      vendorBadge.textContent = vendor.name;
+      vendorBadge.style.backgroundColor = vendor.color;
+      vendorBadge.style.color = '#ffffff';
+
+      // Validation Checks
+      if (rawValue.length === 0) {
+        setMood('neutral');
+        statusMsg.textContent = 'Enter card details';
+        statusMsg.style.color = '#f8fafc';
+      } else if (rawValue.length < 13) {
+        setMood('focus');
+        statusMsg.textContent = 'Keep typing...';
+        statusMsg.style.color = '#94a3b8';
+      } else {
+        const isValid = validateLuhn(rawValue);
+        if (isValid) {
+          setMood('happy');
+          statusMsg.textContent = 'Valid Credit Card Number!';
+          statusMsg.style.color = '#4ade80';
+        } else {
+          setMood('sad');
+          statusMsg.textContent = 'Invalid Card Number';
+          statusMsg.style.color = '#f87171';
+        }
+      }
+    });
+
+    cardInput.addEventListener('focus', () => {
+      if (cardInput.value.replace(/\D/g, '').length < 13) {
+        setMood('focus');
+      }
+    });
+
+    cardInput.addEventListener('blur', () => {
+      if (cardInput.value.length === 0) {
+        setMood('neutral');
+      }
+    });
+  </script>
+</body>
+</html>
